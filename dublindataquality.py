@@ -1,29 +1,26 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime, timedelta
 
 # Function to calculate data quality score
-def calculate_data_quality_score(df, accessibility_option):
+def calculate_data_quality_score(df):
     # Calculate metrics
-    usability_score = count_meaningful_columns(df) + count_constant_columns(df) + count_valid_features(df)
-    metadata_score = count_filled_metadata(df)
-    completeness_score = calculate_completeness(df)
-    accessibility_score = calculate_accessibility_score(accessibility_option)
-
-    # Convert scores to percentages
-    usability_score *= 100
-    metadata_score *= 100
-    completeness_score *= 100
-    accessibility_score *= 100
+    usability_score = (count_meaningful_columns(df) + count_constant_columns(df) + count_valid_features(df)) / 3 * 100
+    metadata_score = count_filled_metadata(df) * 100
+    freshness_score = calculate_freshness(df) * 100
+    completeness_score = calculate_completeness(df) * 100
+    accessibility_score = check_accessibility(df) * 100
 
     # Calculate overall score
-    overall_score = (usability_score * 0.38) + (metadata_score * 0.25) + (completeness_score * 0.12) + (accessibility_score * 0.25)
-
+    overall_score = (usability_score * 0.38) + (metadata_score * 0.25) + (freshness_score * 0.18) + (completeness_score * 0.12) + (accessibility_score * 0.07)
+    overall_score_percentage = overall_score / 100  # Convert overall score back to percentage
     return {
         "Usability": usability_score,
         "Metadata": metadata_score,
+        "Freshness": freshness_score,
         "Completeness": completeness_score,
         "Accessibility": accessibility_score,
-        "Overall Score": overall_score
+        "Overall Score": overall_score_percentage
     }
 
 # Calculate proportion of columns with meaningful names
@@ -39,12 +36,23 @@ def count_constant_columns(df):
 # Calculate proportion of valid features
 def count_valid_features(df):
     # Placeholder function, you should implement this according to your specific criteria
+    # For geospatial datasets, you might check if certain columns are within expected ranges or have valid formats
+    # This is just a dummy implementation
     return 0.5
 
 # Calculate percent of metadata fields that have been filled out
 def count_filled_metadata(df):
     # Placeholder function, you should implement this according to your specific criteria
+    # For example, you might check if certain metadata columns are not null
+    # This is just a dummy implementation
     return 0.7
+
+# Calculate freshness
+def calculate_freshness(df):
+    # Placeholder function, you should implement this according to your specific criteria
+    # For example, you might compare the publication date with the current date
+    # This is just a dummy implementation
+    return 0.8
 
 # Calculate completeness
 def calculate_completeness(df):
@@ -53,28 +61,16 @@ def calculate_completeness(df):
     empty_cells = df.isnull().sum().sum()
     return (total_cells - empty_cells) / total_cells
 
-# Calculate accessibility score based on user's choice
-def calculate_accessibility_score(accessibility_option):
-    # Assign scores based on user's choice
-    if accessibility_option == "API":
-        return 100
-    elif accessibility_option == "Excel/CSV":
-        return 80
-    elif accessibility_option == "JSON/XML":
-        return 70
-    elif accessibility_option == "Text":
-        return 50
-    elif accessibility_option == "PDF/Image":
-        return 25
-    else:
-        return 0
+# Check accessibility
+def check_accessibility(df):
+    # Placeholder function, you should implement this according to your specific criteria
+    # For example, you might check if the data can be accessed via a specific API
+    # This is just a dummy implementation
+    return 1.0
 
 # Main function
 def main():
     st.title("Data Quality Score Calculator")
-
-    # Ask user how the data is accessible
-    accessibility_option = st.selectbox("How is this data accessible?", ["API", "Excel/CSV", "JSON/XML", "Text", "PDF/Image"])
 
     # Upload file
     uploaded_file = st.file_uploader("Upload Excel or CSV file", type=["xls", "xlsx", "csv"])
@@ -91,22 +87,23 @@ def main():
         st.write(df)
 
         # Calculate data quality score
-        data_quality_score = calculate_data_quality_score(df, accessibility_option)
+        data_quality_score = calculate_data_quality_score(df)
 
         # Display scores
         st.subheader("Data Quality Scores:")
         for metric, score in data_quality_score.items():
             if metric == "Overall Score":
-                st.write(f"{metric}: {score:.2f}%")
+                st.write(f"{metric}: {score * 100:.2f}%")  # Display overall score as percentage
             else:
                 st.write(f"{metric}: {score:.2f}%")
 
         # Display definitions
         st.subheader("Feature Definitions:")
         st.write("**Usability:** Measures how easy it is to work with the data. It includes the proportion of columns with meaningful names, constant values, and valid features.")
-        st.write("**Metadata:** Indicates how well the data is described by showing the percentage of metadata fields that have been filled out by the publisher.")
+        st.write("**Metadata:** Indicates how well the data is described. It's measured by the percent of metadata fields that have been filled out by the publisher.")
+        st.write("**Freshness:** Reflects how close the data is to its creation date. It considers the time gap between the expected refresh rate and the actual refresh, and the gap between the last refresh and today.")
         st.write("**Completeness:** Measures how much data is missing. It's calculated as the proportion of empty cells in the dataset.")
-        st.write("**Accessibility:** Assesses how easy it is to access the data. It's scored based on the accessibility option chosen by the user.")
+        st.write("**Accessibility:** Assesses how easy it is to access the data. For this MVP, it checks whether the data can be accessed via the DataStore API.")
 
 if __name__ == "__main__":
     main()
